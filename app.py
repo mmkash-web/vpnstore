@@ -4,6 +4,8 @@ from flask_mail import Mail, Message
 from dotenv import load_dotenv
 from itsdangerous import URLSafeTimedSerializer
 import secrets  # For generating a secure secret key
+import subprocess  # For executing shell commands (for SSH creation)
+import json
 
 # Load environment variables from .env file
 load_dotenv()
@@ -209,33 +211,95 @@ def create_account(account_type):
         password = request.form['password']
 
         if account_type == "SSH":
-            create_ssh_account(username, password)
+            account_details = create_ssh_account(username, password)
         elif account_type == "V2Ray":
             v2ray_type = request.form['v2ray_type']
             if v2ray_type == "VMess":
-                create_v2ray_vmess_account(username, password)
+                account_details = create_v2ray_vmess_account(username, password)
             elif v2ray_type == "Trojan":
-                create_v2ray_trojan_account(username, password)
+                account_details = create_v2ray_trojan_account(username, password)
             elif v2ray_type == "Xray":
-                create_v2ray_xray_account(username, password)
+                account_details = create_v2ray_xray_account(username, password)
 
-        return redirect(url_for('main_menu'))
+        flash(account_details, 'success')
+        return redirect(url_for('show_account_details', account_type=account_type, details=account_details))
 
     return render_template('create_account.html', account_type=account_type)
 
+# Show Account Details in a pop-up
+@app.route('/show_account_details/<account_type>/<details>')
+def show_account_details(account_type, details):
+    return render_template('show_account_details.html', account_type=account_type, details=details)
+
 # Functions for creating accounts
 def create_ssh_account(username, password):
-    pass  # Your SSH account creation logic
+    """Create SSH account logic"""
+    try:
+        # Example: Create an SSH user by adding a new user to the server
+        subprocess.run(['useradd', '-m', username], check=True)
+        subprocess.run(['echo', f'{password} | passwd --stdin {username}'], check=True)
+        account_details = f"SSH Account created: Username: {username}, Password: {password}"
+        return account_details
+    except Exception as e:
+        return f'Error creating SSH account: {str(e)}'
 
 def create_v2ray_vmess_account(username, password):
-    pass  # Your V2Ray account creation logic
+    """Create VMess V2Ray account logic"""
+    try:
+        config_path = '/etc/v2ray/config.json'
+        with open(config_path, 'r+') as f:
+            config = json.load(f)
+            config['inbounds'][0]['settings']['clients'].append({
+                'id': username,
+                'alterId': 64,
+                'security': 'auto'
+            })
+            f.seek(0)
+            json.dump(config, f, indent=4)
+            subprocess.run(['systemctl', 'restart', 'v2ray'], check=True)
+            account_details = f"VMess account created: Username: {username}, Password: {password}"
+            return account_details
+    except Exception as e:
+        return f'Error creating VMess V2Ray account: {str(e)}'
 
 def create_v2ray_trojan_account(username, password):
-    pass  # Your V2Ray account creation logic
+    """Create Trojan V2Ray account logic"""
+    try:
+        config_path = '/etc/v2ray/config.json'
+        with open(config_path, 'r+') as f:
+            config = json.load(f)
+            config['inbounds'][0]['settings']['clients'].append({
+                'password': password,
+                'address': username
+            })
+            f.seek(0)
+            json.dump(config, f, indent=4)
+            subprocess.run(['systemctl', 'restart', 'v2ray'], check=True)
+            account_details = f"Trojan account created: Username: {username}, Password: {password}"
+            return account_details
+    except Exception as e:
+        return f'Error creating Trojan V2Ray account: {str(e)}'
 
 def create_v2ray_xray_account(username, password):
-    pass  # Your V2Ray account creation logic
+    """Create Xray V2Ray account logic"""
+    try:
+        config_path = '/etc/xray/config.json'
+        with open(config_path, 'r+') as f:
+            config = json.load(f)
+            config['inbounds'][0]['settings']['clients'].append({
+                'id': username,
+                'alterId': 64,
+                'security': 'auto'
+            })
+            f.seek(0)
+            json.dump(config, f, indent=4)
+            subprocess.run(['systemctl', 'restart', 'xray'], check=True)
+            account_details = f"Xray account created: Username: {username}, Password: {password}"
+            return account_details
+    except Exception as e:
+        return f'Error creating Xray V2Ray account: {str(e)}'
 
-if __name__ == "__main__":
+# Run the Flask app
+if __name__ == '__main__':
     app.run(debug=True)
 
