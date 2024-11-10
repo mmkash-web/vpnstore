@@ -58,9 +58,74 @@ def signup():
         # Create verification URL with external=True to ensure it uses the full URL
         verification_url = url_for('verify_email', token=token, _external=True)
 
-        # Send the verification email
+        # Send the verification email with a professional design
         msg = Message('Email Verification', recipients=[email])
-        msg.body = f'Hi {username},\nPlease verify your email by clicking on the link: {verification_url}'
+        msg.html = f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Email Verification</title>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    background-color: #f4f4f4;
+                    padding: 20px;
+                    color: #333;
+                }}
+                .container {{
+                    max-width: 600px;
+                    margin: 0 auto;
+                    background-color: #ffffff;
+                    padding: 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                }}
+                h2 {{
+                    color: #333;
+                }}
+                p {{
+                    font-size: 16px;
+                    line-height: 1.6;
+                }}
+                .btn {{
+                    display: inline-block;
+                    padding: 12px 25px;
+                    background-color: #4CAF50;
+                    color: white;
+                    font-size: 16px;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    margin-top: 20px;
+                }}
+                .footer {{
+                    margin-top: 40px;
+                    font-size: 12px;
+                    color: #999;
+                }}
+            </style>
+        </head>
+        <body>
+
+            <div class="container">
+                <h2>Hello {username},</h2>
+                <p>Thank you for signing up with us! To complete your registration, we need to verify your email address.</p>
+                <p>Please click the button below to verify your email:</p>
+                <a href="{verification_url}" class="btn">Verify Your Email</a>
+
+                <p>If you did not sign up for this account, please ignore this email.</p>
+
+                <div class="footer">
+                    <p>Best regards,<br>Your Company Name</p>
+                    <p>This is an automated message, please do not reply.</p>
+                </div>
+            </div>
+
+        </body>
+        </html>
+        """
+
         try:
             mail.send(msg)
             flash('A verification email has been sent to your email address.', 'success')
@@ -173,3 +238,4 @@ def create_v2ray_xray_account(username, password):
 
 if __name__ == "__main__":
     app.run(debug=True)
+
