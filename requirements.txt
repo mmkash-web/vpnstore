@@ -1,0 +1,5 @@
+Flask==2.3.2
+Flask-Mail==0.9.1
+python-dotenv==0.21.1
+itsdangerous==2.1.2
+secrets  # This is a standard library module, so no need to include it in requirements.txt
