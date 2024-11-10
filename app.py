@@ -117,7 +117,7 @@ def signup():
                 <p>If you did not sign up for this account, please ignore this email.</p>
 
                 <div class="footer">
-                    <p>Best regards,<br>Your Company Name</p>
+                    <p>Best regards,<br>Emmkash Technologies</p>
                     <p>This is an automated message, please do not reply.</p>
                 </div>
             </div>
