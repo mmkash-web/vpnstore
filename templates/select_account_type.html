@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Account Type</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Select Account Type</h1>
+    <form method="POST">
+        <label for="account_type">Choose Account Type:</label><br>
+        <select id="account_type" name="account_type" required>
+            <option value="SSH">SSH</option>
+            <option value="V2Ray">V2Ray</option>
+        </select><br>
+
+        <button type="submit">Next</button>
+    </form>
+</body>
+</html>
+

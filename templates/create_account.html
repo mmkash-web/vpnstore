@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Create {{ account_type }} Account</h1>
+    <form method="POST">
+        <label for="username">Username:</label><br>
+        <input type="text" id="username" name="username" required><br>
+
+        <label for="password">Password:</label><br>
+        <input type="password" id="password" name="password" required><br>
+
+        {% if account_type == 'V2Ray' %}
+        <label for="v2ray_type">Choose V2Ray Type:</label><br>
+        <select id="v2ray_type" name="v2ray_type" required>
+            <option value="VMess">VMess</option>
+            <option value="Trojan">Trojan</option>
+            <option value="Xray">Xray</option>
+        </select><br>
+        {% endif %}
+
+        <button type="submit">Create Account</button>
+    </form>
+</body>
+</html>
