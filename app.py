@@ -252,15 +252,15 @@ def create_v2ray_vmess_account(username, password):
             config['inbounds'][0]['settings']['clients'].append({
                 'id': username,
                 'alterId': 64,
-                'security': 'auto'
+                'security': 'auto',
+                'level': 1
             })
             f.seek(0)
             json.dump(config, f, indent=4)
-            subprocess.run(['systemctl', 'restart', 'v2ray'], check=True)
-            account_details = f"VMess account created: Username: {username}, Password: {password}"
-            return account_details
+        account_details = f"VMess V2Ray Account created: Username: {username}, Password: {password}"
+        return account_details
     except Exception as e:
-        return f'Error creating VMess V2Ray account: {str(e)}'
+        return f'Error creating V2Ray VMess account: {str(e)}'
 
 def create_v2ray_trojan_account(username, password):
     """Create Trojan V2Ray account logic"""
@@ -268,17 +268,16 @@ def create_v2ray_trojan_account(username, password):
         config_path = '/etc/v2ray/config.json'
         with open(config_path, 'r+') as f:
             config = json.load(f)
-            config['inbounds'][0]['settings']['clients'].append({
+            config['inbounds'][1]['settings']['clients'].append({
                 'password': password,
-                'address': username
+                'email': username
             })
             f.seek(0)
             json.dump(config, f, indent=4)
-            subprocess.run(['systemctl', 'restart', 'v2ray'], check=True)
-            account_details = f"Trojan account created: Username: {username}, Password: {password}"
-            return account_details
+        account_details = f"Trojan V2Ray Account created: Username: {username}, Password: {password}"
+        return account_details
     except Exception as e:
-        return f'Error creating Trojan V2Ray account: {str(e)}'
+        return f'Error creating V2Ray Trojan account: {str(e)}'
 
 def create_v2ray_xray_account(username, password):
     """Create Xray V2Ray account logic"""
@@ -289,17 +288,15 @@ def create_v2ray_xray_account(username, password):
             config['inbounds'][0]['settings']['clients'].append({
                 'id': username,
                 'alterId': 64,
-                'security': 'auto'
+                'security': 'auto',
+                'level': 1
             })
             f.seek(0)
             json.dump(config, f, indent=4)
-            subprocess.run(['systemctl', 'restart', 'xray'], check=True)
-            account_details = f"Xray account created: Username: {username}, Password: {password}"
-            return account_details
+        account_details = f"Xray V2Ray Account created: Username: {username}, Password: {password}"
+        return account_details
     except Exception as e:
         return f'Error creating Xray V2Ray account: {str(e)}'
 
-# Run the Flask app
 if __name__ == '__main__':
     app.run(debug=True)
-
