@@ -44,9 +44,10 @@ class User(db.Model):
     password = db.Column(db.String(120), nullable=False)
     verified = db.Column(db.Boolean, default=False)
 
-# Create the database tables
+# Create the database tables if they do not already exist
 with app.app_context():
-    db.create_all()
+    if not db.engine.dialect.has_table(db.session.bind, 'user'):  # Check if 'user' table exists
+        db.create_all()  # Create all tables
 
 # Root route, redirects to home page with options for Sign Up or Login
 @app.route('/')
@@ -264,23 +265,31 @@ def create_account(account_type):
 
     return render_template('create_account.html', account_type=account_type)
 
-# Account creation functions (SSH, V2Ray, etc.)
+# Function to create SSH account
 def create_ssh_account(username, password):
-    # Simulating SSH account creation with external script
-    output = subprocess.check_output(["bash", "create_ssh_account.sh", username, password])
-    return f"SSH account created successfully: {output.decode()}"
+    try:
+        result = subprocess.run(["useradd", username], capture_output=True, text=True)
+        if result.returncode == 0:
+            return f"SSH account for {username} created successfully."
+        else:
+            return f"Error creating SSH account: {result.stderr}"
+    except Exception as e:
+        return f"An error occurred: {e}"
 
+# Function to create V2Ray VMess account
 def create_v2ray_vmess_account(username, password):
-    # Simulating V2Ray VMess account creation
-    return f"VMess account created for {username}"
+    # Add V2Ray VMess account creation logic here
+    return f"V2Ray VMess account for {username} created successfully."
 
+# Function to create V2Ray Trojan account
 def create_v2ray_trojan_account(username, password):
-    # Simulating V2Ray Trojan account creation
-    return f"Trojan account created for {username}"
+    # Add V2Ray Trojan account creation logic here
+    return f"V2Ray Trojan account for {username} created successfully."
 
+# Function to create V2Ray Xray account
 def create_v2ray_xray_account(username, password):
-    # Simulating V2Ray Xray account creation
-    return f"Xray account created for {username}"
+    # Add V2Ray Xray account creation logic here
+    return f"V2Ray Xray account for {username} created successfully."
 
 if __name__ == '__main__':
     app.run(debug=True)
