@@ -5,8 +5,6 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 from itsdangerous import URLSafeTimedSerializer
 import secrets
-import subprocess
-import json
 import re
 
 # Load environment variables from .env file
@@ -15,9 +13,9 @@ load_dotenv()
 # Initialize Flask app
 app = Flask(__name__)
 
-# Database configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI', 'sqlite:///users.db')  # Use SQLite as default
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Database configuration for SQLite
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'  # SQLite database URI
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Disable modification tracking to save resources
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(24))  # Secure key for signing cookies
 db = SQLAlchemy(app)
 
@@ -223,11 +221,6 @@ def verify_verification_token(token, expiration=3600):
         return None  # Token expired or invalid
     return email
 
-# Placeholder for user authentication
-def authenticate_user(username, password):
-    # Add your authentication logic here (e.g., check the database)
-    return True  # For now, assuming authentication is always successful
-
 # Main menu page after account creation
 @app.route('/main_menu')
 def main_menu():
@@ -249,47 +242,18 @@ def create_account(account_type):
         username = request.form['username']
         password = request.form['password']
 
-        if account_type == "SSH":
-            account_details = create_ssh_account(username, password)
-        elif account_type == "V2Ray":
-            v2ray_type = request.form['v2ray_type']
-            if v2ray_type == "VMess":
-                account_details = create_v2ray_vmess_account(username, password)
-            elif v2ray_type == "Trojan":
-                account_details = create_v2ray_trojan_account(username, password)
-            elif v2ray_type == "Xray":
-                account_details = create_v2ray_xray_account(username, password)
+        # Handle account creation logic based on account type
+        if account_type == 'V2Ray':
+            account_details = create_v2ray_account(username, password)
+        elif account_type == 'Other':
+            account_details = create_other_account(username, password)
+        else:
+            account_details = create_v2ray_account(username, password)
 
-        flash(account_details, 'success')
-        return redirect(url_for('main_menu'))
+        return render_template('account_details.html', account_details=account_details)
 
     return render_template('create_account.html', account_type=account_type)
 
-# Function to create SSH account
-def create_ssh_account(username, password):
-    try:
-        result = subprocess.run(["useradd", username], capture_output=True, text=True)
-        if result.returncode == 0:
-            return f"SSH account for {username} created successfully."
-        else:
-            return f"Error creating SSH account: {result.stderr}"
-    except Exception as e:
-        return f"An error occurred: {e}"
-
-# Function to create V2Ray VMess account
-def create_v2ray_vmess_account(username, password):
-    # Add V2Ray VMess account creation logic here
-    return f"V2Ray VMess account for {username} created successfully."
-
-# Function to create V2Ray Trojan account
-def create_v2ray_trojan_account(username, password):
-    # Add V2Ray Trojan account creation logic here
-    return f"V2Ray Trojan account for {username} created successfully."
-
-# Function to create V2Ray Xray account
-def create_v2ray_xray_account(username, password):
-    # Add V2Ray Xray account creation logic here
-    return f"V2Ray Xray account for {username} created successfully."
-
+# Main route to run the app
 if __name__ == '__main__':
     app.run(debug=True)
