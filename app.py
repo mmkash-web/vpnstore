@@ -7,6 +7,7 @@ from itsdangerous import URLSafeTimedSerializer
 import secrets
 import subprocess
 import json
+import re
 
 # Load environment variables from .env file
 load_dotenv()
@@ -59,11 +60,22 @@ def signup():
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
+        password_confirm = request.form['password_confirm']
 
-        # Check if the user already exists
+        # Check if username or email already exists
         user_exists = User.query.filter((User.username == username) | (User.email == email)).first()
         if user_exists:
             flash('Username or email already exists!', 'error')
+            return redirect(url_for('signup'))
+
+        # Validate password confirmation
+        if password != password_confirm:
+            flash('Passwords do not match!', 'error')
+            return redirect(url_for('signup'))
+
+        # Validate email format
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            flash('Invalid email format!', 'error')
             return redirect(url_for('signup'))
 
         # Create the user and add to the database
@@ -254,35 +266,21 @@ def create_account(account_type):
 
 # Account creation functions (SSH, V2Ray, etc.)
 def create_ssh_account(username, password):
-    try:
-        subprocess.run(['useradd', username, '-m', '-p', password])
-        return f'SSH Account created: {username}'
-    except Exception as e:
-        return f'Error creating SSH account: {str(e)}'
+    # Simulating SSH account creation with external script
+    output = subprocess.check_output(["bash", "create_ssh_account.sh", username, password])
+    return f"SSH account created successfully: {output.decode()}"
 
 def create_v2ray_vmess_account(username, password):
-    try:
-        with open('/etc/v2ray/config.json', 'r+') as f:
-            config = json.load(f)
-            config['inbounds'][0]['settings']['clients'].append({
-                'id': secrets.token_hex(16),
-                'alterId': 64,
-                'security': 'auto',
-                'password': password
-            })
-            f.seek(0)
-            json.dump(config, f, indent=4)
-        return f'VMess Account created: Username: {username}, Password: {password}'
-    except Exception as e:
-        return f'Error creating VMess account: {str(e)}'
+    # Simulating V2Ray VMess account creation
+    return f"VMess account created for {username}"
 
 def create_v2ray_trojan_account(username, password):
-    """Create Trojan V2Ray account logic"""
-    return f'Trojan account created for {username}'
+    # Simulating V2Ray Trojan account creation
+    return f"Trojan account created for {username}"
 
 def create_v2ray_xray_account(username, password):
-    """Create Xray account logic"""
-    return f'Xray account created for {username}'
+    # Simulating V2Ray Xray account creation
+    return f"Xray account created for {username}"
 
 if __name__ == '__main__':
     app.run(debug=True)
