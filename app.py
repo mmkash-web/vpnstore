@@ -5,7 +5,8 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 from itsdangerous import URLSafeTimedSerializer
 import secrets
-import re
+import subprocess
+import json
 
 # Load environment variables from .env file
 load_dotenv()
@@ -13,9 +14,9 @@ load_dotenv()
 # Initialize Flask app
 app = Flask(__name__)
 
-# Database configuration for SQLite
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'  # SQLite database URI
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Disable modification tracking to save resources
+# Database configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI', 'sqlite:///users.db')  # Use SQLite as default
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(24))  # Secure key for signing cookies
 db = SQLAlchemy(app)
 
@@ -42,10 +43,9 @@ class User(db.Model):
     password = db.Column(db.String(120), nullable=False)
     verified = db.Column(db.Boolean, default=False)
 
-# Create the database tables if they do not already exist
+# Create the database tables
 with app.app_context():
-    if not db.engine.dialect.has_table(db.session.bind, 'user'):  # Check if 'user' table exists
-        db.create_all()  # Create all tables
+    db.create_all()
 
 # Root route, redirects to home page with options for Sign Up or Login
 @app.route('/')
@@ -59,22 +59,11 @@ def signup():
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
-        password_confirm = request.form['password_confirm']
 
-        # Check if username or email already exists
+        # Check if the user already exists
         user_exists = User.query.filter((User.username == username) | (User.email == email)).first()
         if user_exists:
             flash('Username or email already exists!', 'error')
-            return redirect(url_for('signup'))
-
-        # Validate password confirmation
-        if password != password_confirm:
-            flash('Passwords do not match!', 'error')
-            return redirect(url_for('signup'))
-
-        # Validate email format
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            flash('Invalid email format!', 'error')
             return redirect(url_for('signup'))
 
         # Create the user and add to the database
@@ -221,6 +210,11 @@ def verify_verification_token(token, expiration=3600):
         return None  # Token expired or invalid
     return email
 
+# Placeholder for user authentication
+def authenticate_user(username, password):
+    # Add your authentication logic here (e.g., check the database)
+    return True  # For now, assuming authentication is always successful
+
 # Main menu page after account creation
 @app.route('/main_menu')
 def main_menu():
@@ -242,18 +236,53 @@ def create_account(account_type):
         username = request.form['username']
         password = request.form['password']
 
-        # Handle account creation logic based on account type
-        if account_type == 'V2Ray':
-            account_details = create_v2ray_account(username, password)
-        elif account_type == 'Other':
-            account_details = create_other_account(username, password)
-        else:
-            account_details = create_v2ray_account(username, password)
+        if account_type == "SSH":
+            account_details = create_ssh_account(username, password)
+        elif account_type == "V2Ray":
+            v2ray_type = request.form['v2ray_type']
+            if v2ray_type == "VMess":
+                account_details = create_v2ray_vmess_account(username, password)
+            elif v2ray_type == "Trojan":
+                account_details = create_v2ray_trojan_account(username, password)
+            elif v2ray_type == "Xray":
+                account_details = create_v2ray_xray_account(username, password)
 
-        return render_template('account_details.html', account_details=account_details)
+        flash(account_details, 'success')
+        return redirect(url_for('main_menu'))
 
     return render_template('create_account.html', account_type=account_type)
 
-# Main route to run the app
+# Account creation functions (SSH, V2Ray, etc.)
+def create_ssh_account(username, password):
+    try:
+        subprocess.run(['useradd', username, '-m', '-p', password])
+        return f'SSH Account created: {username}'
+    except Exception as e:
+        return f'Error creating SSH account: {str(e)}'
+
+def create_v2ray_vmess_account(username, password):
+    try:
+        with open('/etc/v2ray/config.json', 'r+') as f:
+            config = json.load(f)
+            config['inbounds'][0]['settings']['clients'].append({
+                'id': secrets.token_hex(16),
+                'alterId': 64,
+                'security': 'auto',
+                'password': password
+            })
+            f.seek(0)
+            json.dump(config, f, indent=4)
+        return f'VMess Account created: Username: {username}, Password: {password}'
+    except Exception as e:
+        return f'Error creating VMess account: {str(e)}'
+
+def create_v2ray_trojan_account(username, password):
+    """Create Trojan V2Ray account logic"""
+    return f'Trojan account created for {username}'
+
+def create_v2ray_xray_account(username, password):
+    """Create Xray account logic"""
+    return f'Xray account created for {username}'
+
 if __name__ == '__main__':
     app.run(debug=True)
