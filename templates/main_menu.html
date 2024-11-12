@@ -4,15 +4,102 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Main Menu</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Reset and general styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Container styles */
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 400px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #4CAF50;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            color: #777;
+            margin-bottom: 20px;
+        }
+
+        /* Navigation styles */
+        nav ul {
+            list-style-type: none;
+        }
+
+        nav ul li {
+            margin: 15px 0;
+        }
+
+        .menu-btn {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            font-size: 1.1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .menu-btn:hover {
+            background-color: #45a049;
+        }
+
+        footer {
+            margin-top: 30px;
+            font-size: 0.9rem;
+            color: #777;
+        }
+
+        footer p {
+            font-style: italic;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to Your Main Menu</h1>
-    <p>Select an option below:</p>
-    <div>
-        <a href="#"><button>Manage SSH Accounts</button></a>
-        <a href="#"><button>Manage V2Ray Accounts</button></a>
-        <a href="#"><button>Logout</button></a>
+    <div class="container">
+        <header>
+            <h1>Welcome to Your Main Menu</h1>
+            <p>Choose an option to get started!</p>
+        </header>
+
+        <nav>
+            <ul>
+                <li><a href="#"><button class="menu-btn">Manage SSH Accounts</button></a></li>
+                <li><a href="#"><button class="menu-btn">Manage V2Ray Accounts</button></a></li>
+                <li><a href="#"><button class="menu-btn">Logout</button></a></li>
+            </ul>
+        </nav>
+
+        <footer>
+            <p>© 2024 Your Company. All rights reserved.</p>
+        </footer>
     </div>
 </body>
 </html>
