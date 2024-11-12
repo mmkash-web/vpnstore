@@ -1,10 +1,11 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_mail import Mail, Message
+from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 from itsdangerous import URLSafeTimedSerializer
-import secrets  # For generating a secure secret key
-import subprocess  # For executing shell commands (for SSH creation)
+import secrets
+import subprocess
 import json
 
 # Load environment variables from .env file
@@ -13,33 +14,38 @@ load_dotenv()
 # Initialize Flask app
 app = Flask(__name__)
 
-# DigitalOcean API token (add your own token in the .env file)
-DO_API_TOKEN = os.getenv("DO_API_TOKEN")
-VPS_IP = os.getenv("VPS_IP")
-VPS_ROOT_PASSWORD = os.getenv("VPS_ROOT_PASSWORD")
-
-# Secret key for signing cookies and tokens
-secret_key = os.getenv("SECRET_KEY")
-if not secret_key:
-    secret_key = secrets.token_hex(24)  # Generate a secure random 24-byte string (48 chars)
-    print(f"Generated SECRET_KEY: {secret_key}")  # Optional: print the generated secret key
-
-app.secret_key = secret_key
+# Database configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI', 'sqlite:///users.db')  # Use SQLite as default
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(24))  # Secure key for signing cookies
+db = SQLAlchemy(app)
 
 # Flask-Mail configuration
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
-app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")  # Your email
-app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")  # Your email password
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_USERNAME")  # Default sender (email)
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')  # Your email
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')  # Your email password
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME')  # Default sender (email)
 
 # Initialize Flask-Mail
 mail = Mail(app)
 
 # Initialize serializer for generating email verification tokens
 serializer = URLSafeTimedSerializer(app.secret_key)
+
+# Database model for users
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(120), nullable=False)
+    verified = db.Column(db.Boolean, default=False)
+
+# Create the database tables
+with app.app_context():
+    db.create_all()
 
 # Root route, redirects to home page with options for Sign Up or Login
 @app.route('/')
@@ -53,7 +59,18 @@ def signup():
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
-        
+
+        # Check if the user already exists
+        user_exists = User.query.filter((User.username == username) | (User.email == email)).first()
+        if user_exists:
+            flash('Username or email already exists!', 'error')
+            return redirect(url_for('signup'))
+
+        # Create the user and add to the database
+        new_user = User(username=username, email=email, password=password)
+        db.session.add(new_user)
+        db.session.commit()
+
         # Generate the email verification token
         token = generate_verification_token(email)
         
@@ -145,11 +162,14 @@ def signup():
 def verify_email(token):
     email = verify_verification_token(token)
     if email:
-        flash('Your email has been verified!', 'success')
-        return redirect(url_for('login'))
-    else:
-        flash('Verification link is invalid or has expired.', 'error')
-        return redirect(url_for('signup'))
+        user = User.query.filter_by(email=email).first()
+        if user:
+            user.verified = True
+            db.session.commit()
+            flash('Your email has been verified!', 'success')
+            return redirect(url_for('login'))
+    flash('Verification link is invalid or has expired.', 'error')
+    return redirect(url_for('signup'))
 
 # Email verification pending page
 @app.route('/email_verification_pending')
@@ -163,8 +183,14 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
-        if authenticate_user(username, password):
-            return redirect(url_for('select_account_type'))
+        user = User.query.filter_by(username=username).first()
+
+        if user and user.password == password:
+            if user.verified:
+                return redirect(url_for('select_account_type'))
+            else:
+                flash('Please verify your email first.', 'error')
+                return redirect(url_for('login'))
         else:
             flash('Login Failed. Check your username and password.', 'error')
             return redirect(url_for('login'))
@@ -222,35 +248,24 @@ def create_account(account_type):
                 account_details = create_v2ray_xray_account(username, password)
 
         flash(account_details, 'success')
-        return redirect(url_for('show_account_details', account_type=account_type, details=account_details))
+        return redirect(url_for('main_menu'))
 
     return render_template('create_account.html', account_type=account_type)
 
-# Show Account Details in a pop-up
-@app.route('/show_account_details/<account_type>/<details>')
-def show_account_details(account_type, details):
-    return render_template('show_account_details.html', account_type=account_type, details=details)
-
-# Functions for creating accounts
+# Account creation functions (SSH, V2Ray, etc.)
 def create_ssh_account(username, password):
-    """Create SSH account logic"""
     try:
-        # Example: Create an SSH user by adding a new user to the server
-        subprocess.run(['useradd', '-m', username], check=True)
-        subprocess.run(['echo', f'{password} | passwd --stdin {username}'], check=True)
-        account_details = f"SSH Account created: Username: {username}, Password: {password}"
-        return account_details
+        subprocess.run(['useradd', username, '-m', '-p', password])
+        return f'SSH Account created: {username}'
     except Exception as e:
         return f'Error creating SSH account: {str(e)}'
 
 def create_v2ray_vmess_account(username, password):
-    """Create VMess V2Ray account logic"""
     try:
-        config_path = '/etc/v2ray/config.json'
-        with open(config_path, 'r+') as f:
+        with open('/etc/v2ray/config.json', 'r+') as f:
             config = json.load(f)
             config['inbounds'][0]['settings']['clients'].append({
-                'id': username,
+                'id': secrets.token_hex(16),
                 'alterId': 64,
                 'security': 'auto',
                 'password': password
@@ -271,4 +286,3 @@ def create_v2ray_xray_account(username, password):
 
 if __name__ == '__main__':
     app.run(debug=True)
-
