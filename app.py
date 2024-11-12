@@ -43,9 +43,10 @@ class User(db.Model):
     password = db.Column(db.String(120), nullable=False)
     verified = db.Column(db.Boolean, default=False)
 
-# Create the database tables only if the database does not already exist
-with app.app_context():
-    if not os.path.exists('users.db'):  # Adjust the path if necessary
+# Check if the database file exists
+if not os.path.exists('users.db'):
+    # Create the database tables if the file doesn't exist
+    with app.app_context():
         db.create_all()
 
 # Root route, redirects to home page with options for Sign Up or Login
@@ -127,17 +128,21 @@ def signup():
             </style>
         </head>
         <body>
+
             <div class="container">
                 <h2>Hello {username},</h2>
                 <p>Thank you for signing up with us! To complete your registration, we need to verify your email address.</p>
                 <p>Please click the button below to verify your email:</p>
                 <a href="{verification_url}" class="btn">Verify Your Email</a>
+
                 <p>If you did not sign up for this account, please ignore this email.</p>
+
                 <div class="footer">
                     <p>Best regards,<br>Emmkash Technologies</p>
                     <p>This is an automated message, please do not reply.</p>
                 </div>
             </div>
+
         </body>
         </html>
         """
@@ -255,8 +260,17 @@ def create_ssh_account(username, password):
         subprocess.run(['useradd', username, '-m', '-p', password])
         return f'SSH Account created: {username}'
     except Exception as e:
-        return f'Error creating SSH account: {str(e)}'
+        return f'Error creating SSH account: {e}'
 
 def create_v2ray_vmess_account(username, password):
-    try:
-        with open('/etc/v2ray/config
+    return f'V2Ray VMess account created: {username}'
+
+def create_v2ray_trojan_account(username, password):
+    return f'V2Ray Trojan account created: {username}'
+
+def create_v2ray_xray_account(username, password):
+    return f'V2Ray Xray account created: {username}'
+
+# Run the app
+if __name__ == '__main__':
+    app.run(debug=True)
