@@ -43,9 +43,10 @@ class User(db.Model):
     password = db.Column(db.String(120), nullable=False)
     verified = db.Column(db.Boolean, default=False)
 
-# Create the database tables
+# Create the database tables only if the database does not already exist
 with app.app_context():
-    db.create_all()
+    if not os.path.exists('users.db'):  # Adjust the path if necessary
+        db.create_all()
 
 # Root route, redirects to home page with options for Sign Up or Login
 @app.route('/')
@@ -126,21 +127,17 @@ def signup():
             </style>
         </head>
         <body>
-
             <div class="container">
                 <h2>Hello {username},</h2>
                 <p>Thank you for signing up with us! To complete your registration, we need to verify your email address.</p>
                 <p>Please click the button below to verify your email:</p>
                 <a href="{verification_url}" class="btn">Verify Your Email</a>
-
                 <p>If you did not sign up for this account, please ignore this email.</p>
-
                 <div class="footer">
                     <p>Best regards,<br>Emmkash Technologies</p>
                     <p>This is an automated message, please do not reply.</p>
                 </div>
             </div>
-
         </body>
         </html>
         """
@@ -262,27 +259,4 @@ def create_ssh_account(username, password):
 
 def create_v2ray_vmess_account(username, password):
     try:
-        with open('/etc/v2ray/config.json', 'r+') as f:
-            config = json.load(f)
-            config['inbounds'][0]['settings']['clients'].append({
-                'id': secrets.token_hex(16),
-                'alterId': 64,
-                'security': 'auto',
-                'password': password
-            })
-            f.seek(0)
-            json.dump(config, f, indent=4)
-        return f'VMess Account created: Username: {username}, Password: {password}'
-    except Exception as e:
-        return f'Error creating VMess account: {str(e)}'
-
-def create_v2ray_trojan_account(username, password):
-    """Create Trojan V2Ray account logic"""
-    return f'Trojan account created for {username}'
-
-def create_v2ray_xray_account(username, password):
-    """Create Xray account logic"""
-    return f'Xray account created for {username}'
-
-if __name__ == '__main__':
-    app.run(debug=True)
+        with open('/etc/v2ray/config
